@@ -4,34 +4,15 @@ Release: 1
 Summary: Description
 License: GPL
 URL: http://cloud-technologies.ru/
-BuildRequires: bash, redhat-lsb, coreutils, bigtop-utils, initscripts
+#Requires: bash, redhat-lsb, coreutils, bigtop-utils, initscripts
+Requires(pre): /usr/sbin/useradd /usr/sbin/groupadd
+Requires(postun): /usr/sbin/userdel /usr/sbin/groupdel
+
 %description
 
 %pre
-DISTCC_USER=spark
-if [ -s /etc/redhat-release ]; then
-  # sadly, can't useradd -s /sbin/nologin on rh71, since
-  # then starting the service as user distcc fails,
-  # since it uses su - without overriding the shell :-(
-  # See https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=26894
-  /sbin/service distcc stop &>/dev/null || :
-  if fgrep 'nice initlog $INITLOG_ARGS -c "su - $user' /etc/init.d/functions | fgrep -v '.-s ' > /dev/null 2>&1 ; then
-    # Kludge: for Red Hat 6.2, don't use -s /sbin/nologin
-    /usr/sbin/useradd -d /var/run/distcc -m -r $DISTCC_USER &>/dev/null || :
-  else
-    # but do for everyone else
-    /usr/sbin/useradd -d /var/run/distcc -m -r -s /sbin/nologin $DISTCC_USER &>/dev/null || :
-  fi
-else
-  echo Creating $DISTCC_USER user...
-  if ! id $DISTCC_USER > /dev/null 2>&1 ; then
-    if ! id -g $DISTCC_USER > /dev/null 2>&1 ; then
-      addgroup --system --gid 11 $DISTCC_USER
-    fi
-    adduser --quiet --system --gid 11 \
-      --home / --no-create-home --uid 15 $DISTCC_USER
-  fi
-fi
+/usr/sbin/groupadd -r spark &>/dev/null || :
+/usr/sbin/useradd  -r -s /sbin/nologin -M -g spark spark &>/dev/null || :
 
 %files
 /usr/assembly/target/scala-2.10/spark-assembly_2.10-0.9.0-incubating-hadoop2.2.0.jar
@@ -48,27 +29,43 @@ fi
 /usr/bin/run-example   
 /usr/bin/spark-class       
 /usr/bin/spark-shell
+
+%config 
 /etc/spark/fairscheduler.xml
 /etc/spark/metrics.properties
 /etc/spark/spark-env.sh
 /etc/spark/log4j.properties
 /etc/spark/slaves
+
+%attr(755, root, root) 
 /etc/init.d/spark-master
 /etc/init.d/spark-worker
-
-
-%attr(755, root, root) /etc/init.d/spark-master
-%attr(755, root, root) /etc/init.d/spark-worker
-%attr(644, spark, spark) /var/log/spark
  
-%dir /var/run/spark
-%dir /var/lib/spark
-%dir /var/lock/spark
-%dir /var/log/spark
-%dir /etc/spark
+%dir 
+/var/run/spark
+/var/lib/spark
+/var/lock/spark
+/etc/spark
 
-%changelog
+%defattr(755, spark, spark)
+/var/log/spark
+
+#%post
+#chown spark.spark /var/log/spark -R
+#chmod 755 /var/log/spark -R
 
 %preun
+/etc/init.d/spark-master stop
+/etc/init.d/spark-worker stop
 rm /var/log/spark/* -rf
 rm /var/run/spark/* -rf
+killall -u spark
+
+%postun
+SPARK_USER=spark
+/usr/sbin/userdel $SPARK_USER &>/dev/null || :
+/usr/sbin/groupdel $SPARK_USER &>/dev/null || :
+
+%clean
+
+%changelog
