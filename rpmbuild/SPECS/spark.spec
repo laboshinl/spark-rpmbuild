@@ -1,18 +1,26 @@
 Name: spark
 Version: 0.9.0
-Release: 1
+Release: 3
 Summary: Description
 License: GPL
 URL: http://cloud-technologies.ru/
-#Requires: bash, redhat-lsb, coreutils, bigtop-utils, initscripts
+Requires: bash coreutils redhat-lsb bigtop-utils initscripts
 Requires(pre): /usr/sbin/useradd /usr/sbin/groupadd
 Requires(postun): /usr/sbin/userdel /usr/sbin/groupdel
 
 %description
 
 %pre
-/usr/sbin/groupadd -r spark &>/dev/null || :
-/usr/sbin/useradd  -r -s /sbin/nologin -M -g spark spark &>/dev/null || :
+getent group spark > /dev/null || /usr/sbin/groupadd -r spark &>/dev/null 
+getent passwd spark > /dev/null || /usr/sbin/useradd  -r -s /sbin/nologin -d /var/run/spark -c "Spark service user" -M -g spark spark &>/dev/null 
+exit 0
+
+%config
+/etc/spark/fairscheduler.xml
+/etc/spark/metrics.properties
+/etc/spark/spark-env.sh
+/etc/spark/log4j.properties
+/etc/spark/slaves
 
 %files
 /usr/assembly/target/scala-2.10/spark-assembly_2.10-0.9.0-incubating-hadoop2.2.0.jar
@@ -29,30 +37,15 @@ Requires(postun): /usr/sbin/userdel /usr/sbin/groupdel
 /usr/bin/run-example   
 /usr/bin/spark-class       
 /usr/bin/spark-shell
-
-%config 
-/etc/spark/fairscheduler.xml
-/etc/spark/metrics.properties
-/etc/spark/spark-env.sh
-/etc/spark/log4j.properties
-/etc/spark/slaves
-
-%attr(755, root, root) 
-/etc/init.d/spark-master
-/etc/init.d/spark-worker
+%attr(755, root, root) /etc/init.d/spark-master
+%attr(755, root, root) /etc/init.d/spark-worker
  
 %dir 
 /var/run/spark
 /var/lib/spark
 /var/lock/spark
 /etc/spark
-
-%defattr(755, spark, spark)
-/var/log/spark
-
-#%post
-#chown spark.spark /var/log/spark -R
-#chmod 755 /var/log/spark -R
+%attr(755, spark, spark) /var/log/spark
 
 %preun
 /etc/init.d/spark-master stop
@@ -60,6 +53,7 @@ Requires(postun): /usr/sbin/userdel /usr/sbin/groupdel
 rm /var/log/spark/* -rf
 rm /var/run/spark/* -rf
 killall -u spark
+exit 0
 
 %postun
 SPARK_USER=spark
@@ -69,3 +63,5 @@ SPARK_USER=spark
 %clean
 
 %changelog
+
+
