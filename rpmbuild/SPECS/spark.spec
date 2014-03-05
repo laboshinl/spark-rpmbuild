@@ -42,7 +42,7 @@ exit 0
  
 %dir 
 /var/run/spark
-/var/lib/spark
+%attr(755,spark,spark) /var/lib/spark
 /var/lock/spark
 /etc/spark
 %attr(755, spark, spark) /var/log/spark

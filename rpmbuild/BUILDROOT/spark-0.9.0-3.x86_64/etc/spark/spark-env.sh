@@ -22,6 +22,8 @@
 
 #export SCALA_HOME=/usr/local/scala
 #export PATH=$PATH:$SCALA_HOME/bin
-#export STANDALONE_SPARK_MASTER_HOST= localhost
+#export STANDALONE_SPARK_MASTER_HOST=localhost
 #export DEFAULT_HADOOP_HOME=/usr/lib/hadoop
+#export SPARK_MASTER_PORT=7077
+
 export SPARK_WORKER_DIR=/var/lib/spark/
